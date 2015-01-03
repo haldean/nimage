@@ -26,22 +26,53 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import nimage
 import streams
 
-proc main() =
-    var buf3 = newFileStream("tests/bttf-palette.png", fmRead)
-    let img3 = load_png(buf3)
-    assert($img3[0, 0] == "FF010601")
+type
+    ByteStreamObj = object of StreamObj
+        data*: seq[uint8]
+        pos: int
+    ByteStream = ref ByteStreamObj
 
-    var buf2 = newFileStream("tests/bttf.png", fmRead)
-    let img2 = load_png(buf2)
+proc bsClose(s: Stream) =
+    var bs = ByteStream(s)
+    bs.data = nil
 
-    var buf1 = newFileStream("tests/test1.png", fmRead)
-    let img1 = load_png(buf1)
-    assert($img1[0, 0] == "FF3C3C3C")
+proc bsAtEnd(s: Stream): bool =
+    let bs = ByteStream(s)
+    return bs.pos >= bs.data.len
 
-    echo("Success.")
+proc bsSetPos(s: Stream; pos: int) =
+    var bs = ByteStream(s)
+    bs.pos = clamp(pos, 0, bs.data.high)
 
-when isMainModule:
-    main()
+proc bsGetPos(s: Stream): int =
+    let bs = ByteStream(s)
+    return bs.pos
+
+proc bsRead(s: Stream; buf: pointer; buflen: int): int =
+    var bs = ByteStream(s)
+    result = min(buflen, bs.data.len - bs.pos)
+    if result > 0:
+        copyMem(buf, addr(bs.data[bs.pos]), result)
+        bs.pos += result
+
+proc bsWrite(s: Stream; buf: pointer; buflen: int) =
+    var bs = ByteStream(s)
+    if buflen <= 0:
+        return
+    if bs.pos + buflen > bs.data.len:
+        bs.data.setLen(bs.pos + buflen)
+    copyMem(addr(bs.data[bs.pos]), buf, buflen)
+    bs.pos += buflen
+
+proc newByteStream*(bytes: seq[uint8]): ByteStream =
+    new(result)
+    result.data = bytes
+    result.pos = 0
+    result.closeImpl = bsClose
+    result.atEndImpl = bsAtEnd
+    result.setPositionImpl = bsSetPos
+    result.getPositionImpl = bsGetPos
+    result.readDataImpl = bsRead
+    result.writeDataImpl = bsWrite

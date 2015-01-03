@@ -26,10 +26,12 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+import bytestream
 import filter
 import math
 import image
-import stream
+import streamhelper
+import streams
 import unsigned
 import zlib
 
@@ -96,14 +98,14 @@ template ifromstr(s: string): int32 =
 
 proc load_ihdr(img: ptr PngImage, chunkData: seq[uint8]) =
     var buf = newByteStream(chunkData)
-    img.width = buf.readInt32
-    img.height = buf.readInt32
-    img.depth = buf.read
-    img.colorType = ColorType(buf.read)
+    img.width = buf.readNInt32
+    img.height = buf.readNInt32
+    img.depth = buf.readUint8
+    img.colorType = ColorType(buf.readUint8)
     let
-        compression = buf.read
-        filter = buf.read
-    img.interlaced = buf.read
+        compression = buf.readUint8
+        filter = buf.readUint8
+    img.interlaced = buf.readUint8
     if compression != 0:
         raise newException(ValueError, "unknown compression type " & $compression)
     if filter != 0:
@@ -127,17 +129,17 @@ proc bpp(img: PngImage): int =
 proc bpp(img: ptr PngImage): int = bpp(img[])
 
 proc read_gray(stream: var Stream): NColor =
-    let g = uint32(stream.read)
+    let g = uint32(stream.readUint8)
     return NColor(0xFF000000'u32 or (uint32(g) shl 16) or (uint32(g) shl 8) or g)
 
 proc read_rgb(stream: var Stream): NColor =
-    let r = uint32(stream.read)
-    let g = uint32(stream.read)
-    let b = uint32(stream.read)
+    let r = uint32(stream.readUint8)
+    let g = uint32(stream.readUint8)
+    let b = uint32(stream.readUint8)
     return NColor(0xFF000000'u32 or (uint32(r) shl 16) or (uint32(g) shl 8) or b)
 
 proc read_palette(stream: var Stream, img: ptr PngImage): NColor =
-    return img.palette[stream.read]
+    return img.palette[stream.readUint8]
 
 proc load_idat(img: ptr PngImage, chunkData: seq[uint8]) =
     let uncompressed = zuncompress(chunkData)
@@ -152,11 +154,11 @@ proc load_idat(img: ptr PngImage, chunkData: seq[uint8]) =
         img.data.setLen(img.data.len + (scanlines * img.width))
     var last_scanline: seq[uint8]
     while r < scanlines:
-        let filter = Filter(buf.read)
+        let filter = Filter(buf.readUint8)
         # read the scanline so we can unapply filters before reading colors
         var scanline = newSeq[uint8](img.width * img.bpp)
         for i in 0..img.width * img.bpp - 1:
-            scanline[i] = buf.read
+            scanline[i] = buf.readUint8
         filter.unapply(img.bpp, scanline, last_scanline)
         var scanBuf = newByteStream(scanline)
         while c < img.width:
@@ -180,36 +182,32 @@ proc load_plte(img: ptr PngImage, chunkData: seq[uint8]): int =
     assert(colors * 3 == chunkData.len)
     var buf = newByteStream(chunkData)
     for i in img.palette.low..img.palette.high:
-        if buf.more:
+        if not buf.atEnd:
             img.palette[i] = read_rgb(buf)
         else:
             img.palette[i] = NColor(0)
     return colors
 
-proc load_png*(buf: var Stream): Image =
+proc load_png*(buf: Stream): Image =
     var result: PngImage
     for i in 0..len(PNG_HEADER) - 1:
-        if not buf.more:
+        if buf.atEnd:
             raise newException(
                 ValueError, "file too short; only " & $i & " bytes long")
-        var fheader = buf.read
+        var fheader = buf.readUint8
         if uint8(PNG_HEADER[i]) != fheader:
             raise newException(
                 ValueError,
                 "header bytes did not match at position " & $i &
                 " header: " & $PNG_HEADER[i] & " file: " & $fheader)
     var idats = newSeq[seq[uint8]]()
-    var lastType = 0
-    while buf.more:
+    while not buf.atEnd:
         let
-            chunkLen = buf.readInt32
-            chunkType = buf.readInt32
+            chunkLen = buf.readNInt32
+            chunkType = buf.readNInt32
             chunkData = buf.read(chunkLen)
-            crc = buf.readInt32
-        when DEBUG:
-            if chunkType != lastType:
-                echo("chunk type " & itostr(chunkType) & " len " & $chunkLen)
-                lastType = chunkType
+            crc = buf.readNInt32
+        when DEBUG: echo("chunk type " & itostr(chunkType) & " len " & $chunkLen)
         case chunkType
         of ifromstr("IHDR"):
             load_ihdr(addr(result), chunkData)

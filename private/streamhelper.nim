@@ -26,22 +26,25 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import nimage
+import strfmt
 import streams
 
-proc main() =
-    var buf3 = newFileStream("tests/bttf-palette.png", fmRead)
-    let img3 = load_png(buf3)
-    assert($img3[0, 0] == "FF010601")
+proc read*(s: Stream; length: int): seq[uint8] =
+    if length <= 0:
+        return nil
+    var res = newSeq[uint8](length)
+    if s.readData(addr(res[0]), length) != length:
+        raise newException(IOError, "cannot read " & $length & " bytes from stream")
+    return res
 
-    var buf2 = newFileStream("tests/bttf.png", fmRead)
-    let img2 = load_png(buf2)
+proc readUint8*(s: Stream): uint8 =
+    if readData(s, addr(result), sizeof(uint8)) != sizeof(uint8):
+        raise newException(IOError, "cannot read from stream")
 
-    var buf1 = newFileStream("tests/test1.png", fmRead)
-    let img1 = load_png(buf1)
-    assert($img1[0, 0] == "FF3C3C3C")
-
-    echo("Success.")
-
-when isMainModule:
-    main()
+## Reads a network-order int32. The default reads everything in little-endian,
+## which is maddening.
+proc readNInt32*(s: Stream): int32 {. inline .} =
+    result = result or (int32(s.readUint8) shl 24)
+    result = result or (int32(s.readUint8) shl 16)
+    result = result or (int32(s.readUint8) shl 8)
+    result = result or (int32(s.readUint8))
