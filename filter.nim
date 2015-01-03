@@ -20,7 +20,7 @@ proc paethpredict(a, b, c: int): int =
         return b
     return c
 
-proc apply*(
+proc unapply*(
         filter: Filter, bpp: int,
         scanline: var seq[uint8], last_scanline: seq[uint8]) =
     if filter == Filter.none:

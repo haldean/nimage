@@ -16,6 +16,7 @@ type
         depth: uint8
         colorType: ColorType
         interlaced: uint8
+        palette: array[0..255, NColor]
 
 proc `$`(x: PngImage): string =
     return ("(img w " & $x.width & " h " & $x.height & " depth " & $x.depth &
@@ -23,7 +24,7 @@ proc `$`(x: PngImage): string =
 
 const
     PNG_HEADER = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]
-    DEBUG = true
+    DEBUG = false
 
 proc zuncompress(data: seq[uint8]): string =
     let size = len(data)
@@ -107,6 +108,9 @@ proc read_rgb(stream: var Stream): NColor =
     let b = uint32(stream.read)
     return NColor(0xFF000000'u32 or (uint32(r) shl 16) or (uint32(g) shl 8) or b)
 
+proc read_palette(stream: var Stream, img: ptr PngImage): NColor =
+    return img.palette[stream.read]
+
 proc load_idat(img: ptr PngImage, chunkData: seq[uint8]) =
     let uncompressed = zuncompress(chunkData)
     when DEBUG: echo("  decompressed to " & $len(uncompressed) & " bytes")
@@ -121,25 +125,38 @@ proc load_idat(img: ptr PngImage, chunkData: seq[uint8]) =
     var last_scanline: seq[uint8]
     while r < scanlines:
         let filter = Filter(buf.read)
-        # read the scanline so we can apply filters before reading colors
+        # read the scanline so we can unapply filters before reading colors
         var scanline = newSeq[uint8](img.width * img.bpp)
         for i in 0..img.width * img.bpp - 1:
             scanline[i] = buf.read
-        filter.apply(img.bpp, scanline, last_scanline)
+        filter.unapply(img.bpp, scanline, last_scanline)
         var scanBuf = newByteStream(scanline)
         while c < img.width:
             var color: NColor
             case img.colorType
             of gray:
-                color = read_gray(scanBuf)
+                color = scanBuf.read_gray()
             of rgb:
-                color = read_rgb(scanBuf)
+                color = scanBuf.read_rgb()
+            of palette:
+                color = scanBuf.read_palette(img)
             else:
                 raise newException(ValueError, "can't decode color type " & $img.colorType)
             img[][r, c] = color
             c += 1
         last_scanline = scanline
         r += 1
+
+proc load_plte(img: ptr PngImage, chunkData: seq[uint8]): int =
+    let colors = int(chunkData.len / 3)
+    assert(colors * 3 == chunkData.len)
+    var buf = newByteStream(chunkData)
+    for i in img.palette.low..img.palette.high:
+        if buf.more:
+            img.palette[i] = read_rgb(buf)
+        else:
+            img.palette[i] = NColor(0)
+    return colors
 
 proc load_png*(buf: var Stream): Image =
     var result: PngImage
@@ -154,17 +171,24 @@ proc load_png*(buf: var Stream): Image =
                 "header bytes did not match at position " & $i &
                 " header: " & $PNG_HEADER[i] & " file: " & $fheader)
     var idats = newSeq[seq[uint8]]()
+    var lastType = 0
     while buf.more:
         let
             chunkLen = buf.readInt32
             chunkType = buf.readInt32
             chunkData = buf.read(chunkLen)
             crc = buf.readInt32
-        when DEBUG: echo("chunk type " & itostr(chunkType) & " len " & $chunkLen)
+        when DEBUG:
+            if chunkType != lastType:
+                echo("chunk type " & itostr(chunkType) & " len " & $chunkLen)
+                lastType = chunkType
         case chunkType
         of ifromstr("IHDR"):
             load_ihdr(addr(result), chunkData)
             when DEBUG: echo("  after ihdr: " & $result)
+        of ifromstr("PLTE"):
+            let colors = load_plte(addr(result), chunkData)
+            when DEBUG: echo("  color count: " & $colors)
         of ifromstr("IDAT"):
             idats.add(chunkData)
         of ifromstr("IEND"):
@@ -181,5 +205,5 @@ proc load_png*(buf: var Stream): Image =
         last_i += v.len
     load_idat(addr(result), idat)
     when DEBUG:
-        echo("read image " & $result)
+        echo("loaded image " & $result)
     return result
