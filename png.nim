@@ -1,3 +1,4 @@
+import filter
 import math
 import nimage
 import stream
@@ -11,12 +12,6 @@ type
         palette = 3
         graya = 4
         rgba = 6
-    Filter = enum
-        none = 0
-        sub = 1
-        up = 2
-        average = 3
-        paeth = 4
     PngImage = object of Image
         depth: uint8
         colorType: ColorType
@@ -29,14 +24,6 @@ proc `$`(x: PngImage): string =
 const
     PNG_HEADER = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]
     DEBUG = true
-
-proc itostr(val: int32): string {.inline.} =
-    ## Converts an integer to a four-character string, assuming each octet in
-    ## the integer is a valid ASCII char.
-    var result = ""
-    for i in 0..3:
-        result.add(char((val shr (8 * (3 - i))) and 0xFF))
-    return result
 
 proc zuncompress(data: seq[uint8]): string =
     let size = len(data)
@@ -62,6 +49,14 @@ proc zuncompress(data: seq[uint8]): string =
         if res != zlib.Z_BUF_ERROR:
             raise newException(ValueError, "zlib returned error " & $res)
     raise newException(ValueError, "decompress too large; grew by more than 64x")
+
+proc itostr(val: int32): string {.inline.} =
+    ## Converts an integer to a four-character string, assuming each octet in
+    ## the integer is a valid ASCII char.
+    var result = ""
+    for i in 0..3:
+        result.add(char((val shr (8 * (3 - i))) and 0xFF))
+    return result
 
 template ifromstr(s: string): int32 =
     ## Gets the integer representation of a 4-character string. This does the
@@ -102,50 +97,6 @@ proc bpp(img: PngImage): int =
     of rgba:    return 4 * d
 proc bpp(img: ptr PngImage): int = bpp(img[])
 
-proc paethpredict(a, b, c: int): int =
-    let
-        p = a + b - c
-        pa = abs(p - a)
-        pb = abs(p - b)
-        pc = abs(p - c)
-    if pa <= pb and pa <= pc:
-        return a
-    if pb <= pc:
-        return b
-    return c
-
-proc apply(
-        filter: Filter, img: ptr PngImage,
-        scanline: var seq[uint8], last_scanline: seq[uint8]) =
-    if filter == none:
-        return
-    for i, v in scanline:
-        var left, up, corner: int
-        if i - img.bpp < 0:
-            left = 0
-            corner = 0
-        else:
-            left = int(scanline[i - img.bpp])
-        if isNil(last_scanline):
-            corner = 0
-            up = 0
-        else:
-            up = int(last_scanline[i])
-            if i - img.bpp >= 0:
-                corner = int(last_scanline[i - img.bpp])
-        case filter
-        of sub:
-            scanline[i] = uint8((int(v) + left) mod 256)
-        of average:
-            let avg = int(floor((left + up) / 2))
-            scanline[i] = uint8((int(v) + avg) mod 256)
-        of paeth:
-            let pp = paethpredict(left, up, corner)
-            scanline[i] = uint8((int(v) + pp) mod 256)
-        of none: discard
-        else:
-            raise newException(ValueError, "no support for filter " & $filter)
-
 proc read_gray(stream: var Stream): NColor =
     let g = uint32(stream.read)
     return NColor(0xFF000000'u32 or (uint32(g) shl 16) or (uint32(g) shl 8) or g)
@@ -174,7 +125,7 @@ proc load_idat(img: ptr PngImage, chunkData: seq[uint8]) =
         var scanline = newSeq[uint8](img.width * img.bpp)
         for i in 0..img.width * img.bpp - 1:
             scanline[i] = buf.read
-        filter.apply(img, scanline, last_scanline)
+        filter.apply(img.bpp, scanline, last_scanline)
         var scanBuf = newByteStream(scanline)
         while c < img.width:
             var color: NColor
