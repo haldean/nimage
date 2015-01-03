@@ -29,5 +29,5 @@
 from private/image import nil
 export image.NColor, image.Image, image.`[]`, image.`[]=`, image.`$`
 
-from private/png import nil
-export png.load_png
+from private/loadpng import nil
+export loadpng.load_png

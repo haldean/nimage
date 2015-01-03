@@ -26,39 +26,29 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import image
-import unsigned
+import zlib
 
-type
-    ColorType* = enum
-        gray = 0
-        rgb = 2
-        palette = 3
-        graya = 4
-        rgba = 6
-    PngImage* = object of Image
-        depth*: uint8
-        colorType*: ColorType
-        interlaced*: uint8
-        palette*: array[0..255, NColor]
-
-proc `$`*(x: PngImage): string =
-    return ("(img w " & $x.width & " h " & $x.height & " depth " & $x.depth &
-            " colorType " & $x.colorType & ")")
-
-const PNG_HEADER* = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]
-
-proc itostr*(val: int32): string {.inline.} =
-    ## Converts an integer to a four-character string, assuming each octet in
-    ## the integer is a valid ASCII char.
-    var result = ""
-    for i in 0..3:
-        result.add(char((val shr (8 * (3 - i))) and 0xFF))
-    return result
-
-template ifromstr*(s: string): int32 =
-    ## Gets the integer representation of a 4-character string. This does the
-    ## safe-ish equivalent of "*((int*)(c_str))" in C. This does not check the
-    ## bounds on its inputs!
-    (int32(s[0]) shl 24 or int32(s[1]) shl 16 or
-     int32(s[2]) shl  8 or int32(s[3]))
+proc zuncompress*(data: seq[uint8]): string =
+    let size = len(data)
+    var zdata_str = newString(size)
+    for i in 0..size-1:
+        zdata_str[i] = char(data[i])
+    let zdata = cstring(zdata_str)
+    for mul in 2..6:
+        # Need to use var for the size guess so we can take its address
+        var
+            unzip_size_guess = (1 shl mul) * size
+            uncompressed_str = newString(unzip_size_guess)
+        # Warning! You can't use len(zdata) here, because the string can have null
+        # bytes inside which cause an incorrect string length calculation.
+        let res = zlib.uncompress(
+            uncompressed_str,
+            addr unzip_size_guess,
+            zdata,
+            size)
+        if res == zlib.Z_OK:
+            uncompressed_str.setLen(unzip_size_guess)
+            return uncompressed_str
+        if res != zlib.Z_BUF_ERROR:
+            raise newException(ValueError, "zlib returned error " & $res)
+    raise newException(ValueError, "decompress too large; grew by more than 64x")
