@@ -14,6 +14,18 @@ Current status
 implements the handling of critical chunks, which means that all ancillary
 chunks (containing colorspace data, metadata, etc.) are lost in loading.
 
-To see what's coming up, check out the [Github issues][issues] for this project.
+To see what's coming up, check out the [Github issues][0] for this project.
 
-[issues]: http://github.com/haldean/nimage/issues
+License
+---
+`nimage` is provided under the new-BSD three-clause license. The text of this
+license is included in [LICENSE][1] as well as at the top of every source
+file.
+
+Contributing
+---
+Contributions via pull request are much appreciated! I especially would like
+help with things marked `help-wanted` in the [issues][0].
+
+[0]: http://github.com/haldean/nimage/issues
+[1]: https://github.com/haldean/nimage/blob/master/LICENSE
