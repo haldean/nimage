@@ -38,7 +38,7 @@ proc main() =
 
     var buf1 = newFileStream("tests/test1.png")
     let img1 = load_png(buf1)
-    echo($int(img1[0, 0]))
+    assert($img1[0, 0] == "FF3C3C3C")
 
 when isMainModule:
     main()

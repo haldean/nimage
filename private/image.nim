@@ -26,6 +26,7 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+import strfmt
 import unsigned
 
 type
@@ -34,6 +35,13 @@ type
         width*: int
         height*: int
         data*: seq[NColor] # Data is stored in row-major format
+
+# NColor implementation
+
+proc `$`*(color: NColor): string =
+    return fmt("{:08X}", uint32(color))
+
+# Image implementation
 
 proc get_index(img: Image; row, col: int): int = row * img.width + col
 
