@@ -28,7 +28,6 @@
 
 import nimage
 import stream
-import png
 
 proc main() =
     var buf3 = newFileStream("tests/bttf-palette.png")

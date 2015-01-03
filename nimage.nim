@@ -29,6 +29,8 @@
 import colors
 import unsigned
 
+import stream
+
 type
     NColor* = distinct uint32
     Index* = tuple[row: int, col: int]
@@ -48,3 +50,11 @@ proc `[]=`*(img: var Image; row, col: int; val: NColor) =
 proc create_image*(width, height: int): Image =
     let data = newSeq[NColor](width * height)
     return Image(width: width, height: height, data: data)
+
+# Not sure the best way to do this (expose the Image type in the top module and
+# also allow the decoders to use it) without the funky circular dependency. It
+# would be nice to be able to "expose" things in modules; maybe that's possible
+# but I don't know how to yet.
+import private/png
+proc load_png*(buf: var Stream): Image =
+    return png.load_png(buf)
