@@ -1,20 +1,22 @@
 import colors
+import unsigned
 
 type
+    NColor* = distinct uint32
     Index* = tuple[row: int, col: int]
-    Image* = object of TObject
+    Image* = object of RootObj
         width*: int
         height*: int
-        data: seq[Color] # Data is stored in row-major format
+        data*: seq[NColor] # Data is stored in row-major format
 
-proc get_index(img: Image, idx: Index): int = idx.row * img.width + idx.col
+proc get_index(img: Image; row, col: int): int = row * img.width + col
 
-proc `[]`*(img: Image, idx: Index): Color =
-    return img.data[img.get_index(idx)]
+proc `[]`*(img: Image; row, col: int): NColor =
+    return img.data[img.get_index(row, col)]
 
-proc `[]=`*(img: var Image, idx: Index, val: Color) =
-    img.data[img.get_index(idx)] = val
+proc `[]=`*(img: var Image; row, col: int; val: NColor) =
+    img.data[img.get_index(row, col)] = val
 
 proc create_image*(width, height: int): Image =
-    let data = newSeq[Color](width * height)
+    let data = newSeq[NColor](width * height)
     return Image(width: width, height: height, data: data)
