@@ -31,11 +31,14 @@ import stream
 
 proc main() =
     var buf3 = newFileStream("tests/bttf-palette.png")
-    discard load_png(buf3)
+    let img3 = load_png(buf3)
+
     var buf2 = newFileStream("tests/bttf.png")
-    discard load_png(buf2)
+    let img2 = load_png(buf2)
+
     var buf1 = newFileStream("tests/test1.png")
-    discard load_png(buf1)
+    let img1 = load_png(buf1)
+    echo($int(img1[0, 0]))
 
 when isMainModule:
     main()

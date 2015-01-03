@@ -28,7 +28,7 @@
 
 import filter
 import math
-import nimage
+import image
 import stream
 import unsigned
 import zlib
@@ -46,7 +46,7 @@ type
         interlaced: uint8
         palette: array[0..255, NColor]
 
-proc `$`(x: PngImage): string =
+proc `$`*(x: PngImage): string =
     return ("(img w " & $x.width & " h " & $x.height & " depth " & $x.depth &
             " colorType " & $x.colorType & ")")
 
@@ -215,8 +215,11 @@ proc load_png*(buf: var Stream): Image =
             load_ihdr(addr(result), chunkData)
             when DEBUG: echo("  after ihdr: " & $result)
         of ifromstr("PLTE"):
-            let colors = load_plte(addr(result), chunkData)
-            when DEBUG: echo("  color count: " & $colors)
+            when DEBUG:
+                let colors = load_plte(addr(result), chunkData)
+                echo("  color count: " & $colors)
+            else:
+                discard load_plte(addr(result), chunkData)
         of ifromstr("IDAT"):
             idats.add(chunkData)
         of ifromstr("IEND"):

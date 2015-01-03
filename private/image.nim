@@ -26,8 +26,23 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from private/image import nil
-export image.NColor, image.Image, image.`[]`, image.`[]=`
+import unsigned
 
-from private/png import nil
-export png.load_png
+type
+    NColor* = distinct uint32
+    Image* = object of RootObj
+        width*: int
+        height*: int
+        data*: seq[NColor] # Data is stored in row-major format
+
+proc get_index(img: Image; row, col: int): int = row * img.width + col
+
+proc `[]`*(img: Image; row, col: int): NColor =
+    return img.data[img.get_index(row, col)]
+
+proc `[]=`*(img: var Image; row, col: int; val: NColor) =
+    img.data[img.get_index(row, col)] = val
+
+proc create_image*(width, height: int): Image =
+    let data = newSeq[NColor](width * height)
+    return Image(width: width, height: height, data: data)
