@@ -93,3 +93,4 @@ proc apply*(bpp: int, scanline: var string, last_scanline: string): string =
             result[i] = v
         else:
             raise newException(ValueError, "no support for filter " & $filter)
+    return result

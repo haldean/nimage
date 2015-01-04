@@ -26,31 +26,12 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import nimage
-import streams
 import strfmt
+import unsigned
 
-proc main() =
-    let w = 2
-    let h = 2
-    var img1 = createImage(w, h)
-    for i in 0..h-1:
-        for j in 0..w-1:
-            img1[i, j] = NColor(0xFF0000FF)
-    img1[0, 0] = NColor(0x98765432)
-    img1[0, 1] = NColor(0xABAD1DEA)
-    img1[1, 1] = NColor(0xABCDEFFF)
-    var out1 = newFileStream("/tmp/test.png", fmWrite)
-    img1.savePng(out1)
-    out1.close()
-    var in1 = newFileStream("/tmp/test.png", fmRead)
-    var img2 = loadPng(in1)
-    in1.close()
-    for i in 0..h-1:
-        for j in 0..w-1:
-            echo(fmt("{},{}: pre {} post {}", i, j, $img1[i,j], $img2[i,j]))
-            assert(img1[i,j] == img2[i,j])
-    echo("Success.")
-
-when isMainModule:
-    main()
+## Prints out a bytearray as a hex string
+proc echoHex*(s: string) =
+    var s = s
+    var bytes = newSeq[uint8](s.len)
+    copyMem(addr(bytes[0]), addr(s[0]), s.len)
+    echo(bytes.format("02Xa' '"))

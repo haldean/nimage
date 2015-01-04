@@ -1,20 +1,20 @@
 # Copyright (c) 2015, Haldean Brown
 # All rights reserved.
-# 
+#
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
-# 
+#
 # * Redistributions of source code must retain the above copyright notice, this
 #   list of conditions and the following disclaimer.
-# 
+#
 # * Redistributions in binary form must reproduce the above copyright notice,
 #   this list of conditions and the following disclaimer in the documentation
 #   and/or other materials provided with the distribution.
-# 
+#
 # * Neither the name of nimage nor the names of its
 #   contributors may be used to endorse or promote products derived from
 #   this software without specific prior written permission.
-# 
+#
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 # AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 # IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -32,6 +32,7 @@ import streams
 import strfmt
 import unsigned
 
+import private/dbgutil
 import private/filter
 import private/png
 import private/zutil
@@ -77,10 +78,10 @@ proc write_IDAT(buf: Stream, img: ref PngImage) =
         scanline[0] = char(Filter.none)
         for c in 0..img.width-1:
             var cstr = itostr(uint32(img[][r, c]))
-            copyMem(addr(scanline[c * img.bpp + 1]), addr(cstr[0]), 4)
-        let filtered = filter.apply(img.bpp, scanline, last_scanline)
+            copyMem(addr(scanline[c * img.bpp + 1]), addr(cstr[0]), img.bpp)
+        var filtered = filter.apply(img.bpp, scanline, last_scanline)
         last_scanline = scanline
-        chunk.writeData(addr(scanline[0]), len(scanline))
+        chunk.writeData(addr(filtered[0]), len(filtered))
     var compressed = zcompress(chunk.data)
     buf.write_chunk("IDAT", compressed)
 

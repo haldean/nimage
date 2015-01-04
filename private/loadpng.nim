@@ -67,7 +67,16 @@ proc read_rgb(stream: var Stream): NColor =
     let r = uint32(stream.readUint8)
     let g = uint32(stream.readUint8)
     let b = uint32(stream.readUint8)
-    return NColor(0xFF000000'u32 or (uint32(r) shl 16) or (uint32(g) shl 8) or b)
+    return NColor(
+        (uint32(r) shl 24) or (uint32(g) shl 16) or (uint32(b) shl 8) or 0xFF'u32)
+
+proc read_rgba(stream: var Stream): NColor =
+    let r = uint32(stream.readUint8)
+    let g = uint32(stream.readUint8)
+    let b = uint32(stream.readUint8)
+    let a = uint32(stream.readUint8)
+    return NColor(
+        (uint32(r) shl 24) or (uint32(g) shl 16) or (uint32(b) shl 8) or a)
 
 proc read_palette(stream: var Stream, img: ptr PngImage): NColor =
     return img.palette[stream.readUint8]
@@ -99,6 +108,8 @@ proc load_idat(img: ptr PngImage, chunkData: string) =
                 color = scanBuf.read_gray()
             of rgb:
                 color = scanBuf.read_rgb()
+            of rgba:
+                color = scanBuf.read_rgba()
             of palette:
                 color = scanBuf.read_palette(img)
             else:

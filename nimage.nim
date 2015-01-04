@@ -27,7 +27,8 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from private/image import nil
-export image.NColor, image.Image, image.`[]`, image.`[]=`, image.`$`, image.create_image
+export image.Image, image.`[]`, image.`[]=`, image.create_image
+export image.NColor, image.`==`, image.`$`
 
 from private/loadpng import nil
 export loadpng.load_png

@@ -43,6 +43,9 @@ type
 proc `$`*(color: NColor): string =
     return fmt("{:08X}", uint32(color))
 
+proc `==`*(c1, c2: NColor): bool =
+    return uint32(c1) == uint32(c2)
+
 # Image implementation
 
 proc get_index(img: Image; row, col: int): int = row * img.width + col
