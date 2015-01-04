@@ -33,15 +33,22 @@ proc main() =
     var buf3 = newFileStream("tests/bttf-palette.png", fmRead)
     let img3 = load_png(buf3)
     assert($img3[0, 0] == "FF010601")
+    buf3.close()
 
     var buf2 = newFileStream("tests/bttf.png", fmRead)
     let img2 = load_png(buf2)
+    buf2.close()
     var out2 = newFileStream("/tmp/bttf.png", fmWrite)
     img2.save_png(out2)
+    out2.close()
 
     var buf1 = newFileStream("tests/test1.png", fmRead)
     let img1 = load_png(buf1)
     assert($img1[0, 0] == "FF3C3C3C")
+    buf1.close()
+    var out1 = newFileStream("/tmp/xkcd.png", fmWrite)
+    img1.save_png(out1)
+    out1.close()
 
     echo("Success.")
 
