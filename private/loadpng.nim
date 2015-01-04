@@ -39,8 +39,8 @@ import private/zutil
 
 const DEBUG = false
 
-proc load_ihdr(img: ptr PngImage, chunkData: seq[uint8]) =
-    var buf = newByteStream(chunkData)
+proc load_ihdr(img: ptr PngImage, chunkData: string) =
+    var buf = newStringStream(chunkData)
     img.width = buf.readNInt32
     img.height = buf.readNInt32
     img.depth = buf.readUint8
@@ -71,7 +71,7 @@ proc read_rgb(stream: var Stream): NColor =
 proc read_palette(stream: var Stream, img: ptr PngImage): NColor =
     return img.palette[stream.readUint8]
 
-proc load_idat(img: ptr PngImage, chunkData: var seq[uint8]) =
+proc load_idat(img: ptr PngImage, chunkData: string) =
     let uncompressed = zuncompress(chunkData)
     when DEBUG: echo("  decompressed to " & $len(uncompressed) & " bytes")
     let scanlines = int(len(uncompressed) / (img.width * img.bpp + 1))
@@ -82,15 +82,15 @@ proc load_idat(img: ptr PngImage, chunkData: var seq[uint8]) =
         img.data = newSeq[NColor](scanlines * img.width)
     else:
         img.data.setLen(img.data.len + (scanlines * img.width))
-    var last_scanline: seq[uint8]
+    var last_scanline: string
     while r < scanlines:
         let filter = Filter(buf.readUint8)
         # read the scanline so we can unapply filters before reading colors
-        var scanline = newSeq[uint8](img.width * img.bpp)
+        var scanline = newString(img.width * img.bpp)
         for i in 0..img.width * img.bpp - 1:
-            scanline[i] = buf.readUint8
+            scanline[i] = buf.readChar
         filter.unapply(img.bpp, scanline, last_scanline)
-        var scanBuf = newByteStream(scanline)
+        var scanBuf = newStringStream(scanline)
         while c < img.width:
             var color: NColor
             case img.colorType
@@ -107,10 +107,10 @@ proc load_idat(img: ptr PngImage, chunkData: var seq[uint8]) =
         last_scanline = scanline
         r += 1
 
-proc load_plte(img: ptr PngImage, chunkData: seq[uint8]): int =
+proc load_plte(img: ptr PngImage, chunkData: string): int =
     let colors = int(chunkData.len / 3)
     assert(colors * 3 == chunkData.len)
-    var buf = newByteStream(chunkData)
+    var buf = newStringStream(chunkData)
     for i in img.palette.low..img.palette.high:
         if not buf.atEnd:
             img.palette[i] = read_rgb(buf)
@@ -130,7 +130,7 @@ proc load_png*(buf: Stream): Image =
                 ValueError,
                 "header bytes did not match at position " & $i &
                 " header: " & $PNG_HEADER[i] & " file: " & $fheader)
-    var idats = newSeq[seq[uint8]]()
+    var idats = newSeq[string]()
     while not buf.atEnd:
         let
             chunkLen = buf.readNInt32
@@ -157,7 +157,7 @@ proc load_png*(buf: Stream): Image =
     var idat_len = 0
     for i, v in idats:
         idat_len += v.len
-    var idat = newSeq[uint8](idat_len)
+    var idat = newString(idat_len)
     var last_i = 0
     for i, v in idats:
         copyMem(addr(idat[last_i]), addr(idats[i][0]), v.len)

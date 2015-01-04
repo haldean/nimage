@@ -29,10 +29,10 @@
 import strfmt
 import streams
 
-proc read*(s: Stream; length: int): seq[uint8] =
+proc read*(s: Stream; length: int): string =
     if length <= 0:
         return nil
-    var res = newSeq[uint8](length)
+    var res = newString(length)
     if s.readData(addr(res[0]), length) != length:
         raise newException(IOError, "cannot read " & $length & " bytes from stream")
     return res

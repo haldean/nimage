@@ -49,8 +49,7 @@ proc paethpredict(a, b, c: int): int =
     return c
 
 proc unapply*(
-        filter: Filter, bpp: int,
-        scanline: var seq[uint8], last_scanline: seq[uint8]) =
+        filter: Filter, bpp: int, scanline: var string, last_scanline: string) =
     if filter == Filter.none:
         return
     for i, v in scanline:
@@ -69,22 +68,22 @@ proc unapply*(
                 corner = int(last_scanline[i - bpp])
         case filter
         of Filter.sub:
-            scanline[i] = uint8((int(v) + left) mod 256)
+            scanline[i] = char((int(v) + left) mod 256)
         of Filter.up:
-            scanline[i] = uint8((int(v) + up) mod 256)
+            scanline[i] = char((int(v) + up) mod 256)
         of Filter.average:
             let avg = int(floor((left + up) / 2))
-            scanline[i] = uint8((int(v) + avg) mod 256)
+            scanline[i] = char((int(v) + avg) mod 256)
         of Filter.paeth:
             let pp = paethpredict(left, up, corner)
-            scanline[i] = uint8((int(v) + pp) mod 256)
+            scanline[i] = char((int(v) + pp) mod 256)
         of Filter.none: discard
         else:
             raise newException(ValueError, "no support for filter " & $filter)
 
-proc apply*(bpp: int, scanline: var seq[uint8], last_scanline: seq[uint8]): seq[uint8] =
+proc apply*(bpp: int, scanline: var string, last_scanline: string): string =
     let filter = Filter(scanline[0])
-    var result = newSeq[uint8](scanline.len)
+    var result = newString(scanline.len)
     for i, v in scanline:
         if i == 0:
             result[i] = v

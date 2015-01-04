@@ -70,10 +70,10 @@ proc write_IDAT(buf: Stream, img: ref PngImage) =
     if img.bpp != 4:
         raise newException(ValueError, "only 4 BPP images are supported")
     let sl_len = img.width * img.bpp
-    var last_scanline: seq[uint8]
+    var last_scanline: string
     for r in 0..img.height-1:
-        var scanline = newSeq[uint8](sl_len + 1)
-        scanline[0] = uint8(Filter.none)
+        var scanline = newString(sl_len + 1)
+        scanline[0] = char(Filter.none)
         copyMem(addr(scanline[1]), addr(img.data[img.width * r]), sl_len)
         let filtered = filter.apply(img.bpp, scanline, last_scanline)
         last_scanline = scanline
