@@ -26,8 +26,9 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import image
 import unsigned
+
+import private/image
 
 type
     ColorType* = enum
@@ -47,6 +48,20 @@ proc `$`*(x: PngImage): string =
             " colorType " & $x.colorType & ")")
 
 const PNG_HEADER* = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]
+
+## Returns the bytes per pixel for the given image
+proc bpp*(img: PngImage): int =
+    let d = int(int(img.depth) / 8)
+    # We only support multiple-of-8 image depths
+    assert(d * 8 == int(img.depth))
+    case img.colorType
+    of gray:    return d
+    of rgb:     return 3 * d
+    of palette: return d
+    of graya:   return 2 * d
+    of rgba:    return 4 * d
+proc bpp*(img: ref PngImage): int = bpp(img[])
+proc bpp*(img: ptr PngImage): int = bpp(img[])
 
 proc itostr*(val: int32): string {.inline.} =
     ## Converts an integer to a four-character string, assuming each octet in

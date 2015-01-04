@@ -82,3 +82,15 @@ proc unapply*(
         else:
             raise newException(ValueError, "no support for filter " & $filter)
 
+proc apply*(bpp: int, scanline: var seq[uint8], last_scanline: seq[uint8]): seq[uint8] =
+    let filter = Filter(scanline[0])
+    var result = newSeq[uint8](scanline.len)
+    for i, v in scanline:
+        if i == 0:
+            result[i] = v
+            continue
+        case filter
+        of Filter.none:
+            result[i] = v
+        else:
+            raise newException(ValueError, "no support for filter " & $filter)

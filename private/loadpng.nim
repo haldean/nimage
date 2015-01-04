@@ -26,15 +26,15 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import bytestream
-import filter
-import image
 import math
-import streamhelper
 import streams
 import unsigned
 
+import private/bytestream
+import private/filter
+import private/image
 import private/png
+import private/streamhelper
 import private/zutil
 
 const DEBUG = false
@@ -58,19 +58,6 @@ proc load_ihdr(img: ptr PngImage, chunkData: seq[uint8]) =
     if img.depth != 8:
         raise newException(ValueError, "unsupported color depth " & $img.depth)
 
-## Returns the bytes per pixel for the given image
-proc bpp(img: PngImage): int =
-    let d = int(int(img.depth) / 8)
-    # We only support multiple-of-8 image depths
-    assert(d * 8 == int(img.depth))
-    case img.colorType
-    of gray:    return d
-    of rgb:     return 3 * d
-    of palette: return d
-    of graya:   return 2 * d
-    of rgba:    return 4 * d
-proc bpp(img: ptr PngImage): int = bpp(img[])
-
 proc read_gray(stream: var Stream): NColor =
     let g = uint32(stream.readUint8)
     return NColor(0xFF000000'u32 or (uint32(g) shl 16) or (uint32(g) shl 8) or g)
@@ -84,7 +71,7 @@ proc read_rgb(stream: var Stream): NColor =
 proc read_palette(stream: var Stream, img: ptr PngImage): NColor =
     return img.palette[stream.readUint8]
 
-proc load_idat(img: ptr PngImage, chunkData: seq[uint8]) =
+proc load_idat(img: ptr PngImage, chunkData: var seq[uint8]) =
     let uncompressed = zuncompress(chunkData)
     when DEBUG: echo("  decompressed to " & $len(uncompressed) & " bytes")
     let scanlines = int(len(uncompressed) / (img.width * img.bpp + 1))

@@ -28,22 +28,20 @@
 
 import zlib
 
-proc zuncompress*(data: seq[uint8]): string =
-    let size = len(data)
-    var zdata_str = newString(size)
-    for i in 0..size-1:
-        zdata_str[i] = char(data[i])
-    let zdata = cstring(zdata_str)
+proc zuncompress*(data: string): string =
+    let
+        zdata = cstring(data)
+        size = data.len
     for mul in 2..6:
         # Need to use var for the size guess so we can take its address
         var
-            unzip_size_guess = (1 shl mul) * size
-            uncompressed_str = newString(unzip_size_guess)
+            unzip_size_guess = Ulongf((1 shl mul) * size)
+            uncompressed_str = newString(int(unzip_size_guess))
         # Warning! You can't use len(zdata) here, because the string can have null
         # bytes inside which cause an incorrect string length calculation.
         let res = zlib.uncompress(
             uncompressed_str,
-            addr unzip_size_guess,
+            Pulongf(addr unzip_size_guess),
             zdata,
             size)
         if res == zlib.Z_OK:
@@ -52,3 +50,27 @@ proc zuncompress*(data: seq[uint8]): string =
         if res != zlib.Z_BUF_ERROR:
             raise newException(ValueError, "zlib returned error " & $res)
     raise newException(ValueError, "decompress too large; grew by more than 64x")
+
+proc zuncompress*(data: seq[uint8]): string =
+    let size = data.len
+    var zdata_str = newString(size)
+    for i in 0..size-1:
+        zdata_str[i] = char(data[i])
+    return zuncompress(zdata_str)
+
+proc zcompress*(data: string): string =
+    let size = data.len
+    var
+        resultSize = zlib.compressBound(Ulong(size))
+        result = newString(resultSize)
+    let res = zlib.compress(
+        result, Pulongf(addr resultSize), data, size)
+    if res != zlib.Z_OK:
+        raise newException(ValueError, "zlib returned error " & $res)
+    result.setLen(resultSize)
+    return result
+
+proc zcrc*(data: string): uint32 =
+    var data = data
+    let crc: Ulong = crc32(Ulong(0), Pbytef(nil), Uint(0))
+    return uint32(crc32(crc, PBytef(addr(data[0])), Uint(data.len)))

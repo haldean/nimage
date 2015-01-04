@@ -30,20 +30,13 @@ import nimage
 import streams
 
 proc main() =
-    var buf3 = newFileStream("tests/bttf-palette.png", fmRead)
-    let img3 = load_png(buf3)
-    assert($img3[0, 0] == "FF010601")
-
-    var buf2 = newFileStream("tests/bttf.png", fmRead)
-    let img2 = load_png(buf2)
-    var out2 = newFileStream("/tmp/bttf.png", fmWrite)
-    img2.save_png(out2)
-
-    var buf1 = newFileStream("tests/test1.png", fmRead)
-    let img1 = load_png(buf1)
-    assert($img1[0, 0] == "FF3C3C3C")
-
-    echo("Success.")
+    var img1 = createImage(2, 2)
+    img1[0, 0] = NColor(0xFFABCDEF)
+    img1[0, 1] = NColor(0xFF000000)
+    img1[1, 0] = NColor(0xFF000000)
+    img1[1, 1] = NColor(0xFFABCDEF)
+    var out1 = newFileStream("/tmp/test.png", fmWrite)
+    img1.savePng(out1)
 
 when isMainModule:
     main()
