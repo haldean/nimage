@@ -28,6 +28,7 @@
 
 import strfmt
 import streams
+import unsigned
 
 proc read*(s: Stream; length: int): string =
     if length <= 0:
@@ -48,3 +49,9 @@ proc readNInt32*(s: Stream): int32 {. inline .} =
     result = result or (int32(s.readUint8) shl 16)
     result = result or (int32(s.readUint8) shl 8)
     result = result or (int32(s.readUint8))
+
+proc writeNInt32*(s: Stream; val: uint32) {. inline .} =
+    s.write(uint8(val shr 24))
+    s.write(uint8(val shr 16))
+    s.write(uint8(val shr 8))
+    s.write(uint8(val))

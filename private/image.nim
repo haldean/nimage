@@ -30,6 +30,8 @@ import strfmt
 import unsigned
 
 type
+    ## A color in RGBA format, 8 bits per sample. For example, 50% red, 100%
+    ## green, 0% blue, 100% alpha would be `NColor(0x80FF00FF)`.
     NColor* = distinct uint32
     Image* = object of RootObj
         width*: int

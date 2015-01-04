@@ -26,6 +26,7 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+import strutils
 import zlib
 
 proc zuncompress*(data: string): string =
@@ -70,7 +71,11 @@ proc zcompress*(data: string): string =
     result.setLen(resultSize)
     return result
 
-proc zcrc*(data: string): uint32 =
-    var data = data
-    let crc: Ulong = crc32(Ulong(0), Pbytef(nil), Uint(0))
-    return uint32(crc32(crc, PBytef(addr(data[0])), Uint(data.len)))
+proc zcrc*(data: varargs[string]): uint32 =
+    var crc = crc32(Ulong(0), Pbytef(nil), Uint(0))
+    for d in data:
+        if d.isNil:
+            continue
+        var datum = d
+        crc = crc32(crc, PBytef(addr(datum[0])), Uint(datum.len))
+    return uint32(crc)

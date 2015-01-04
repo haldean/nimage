@@ -28,6 +28,7 @@
 
 import math
 import streams
+import strfmt
 import unsigned
 
 import private/bytestream
@@ -134,10 +135,16 @@ proc load_png*(buf: Stream): Image =
     while not buf.atEnd:
         let
             chunkLen = buf.readNInt32
-            chunkType = buf.readNInt32
-            chunkData = buf.read(chunkLen)
-            crc = buf.readNInt32
+            chunkType = uint32(buf.readNInt32)
         when DEBUG: echo("chunk type " & itostr(chunkType) & " len " & $chunkLen)
+        let
+            chunkData = buf.read(chunkLen)
+            crc = uint32(buf.readNInt32)
+            chunkCrc = zcrc(itostr(chunkType), chunkData)
+        if crc != chunkCrc:
+            raise newException(
+                ValueError,
+                fmt("bad CRC; from file: {:08x}, from data: {:08x}", crc, chunkCrc))
         case chunkType
         of ifromstr("IHDR"):
             load_ihdr(addr(result), chunkData)

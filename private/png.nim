@@ -63,17 +63,18 @@ proc bpp*(img: PngImage): int =
 proc bpp*(img: ref PngImage): int = bpp(img[])
 proc bpp*(img: ptr PngImage): int = bpp(img[])
 
-proc itostr*(val: int32): string {.inline.} =
+proc itostr*(val: uint32): string {.inline.} =
     ## Converts an integer to a four-character string, assuming each octet in
     ## the integer is a valid ASCII char.
     var result = ""
     for i in 0..3:
-        result.add(char((val shr (8 * (3 - i))) and 0xFF))
+        result.add(char((val shr uint32(8 * (3 - i))) and 0xFF))
     return result
 
-template ifromstr*(s: string): int32 =
+template ifromstr*(s: string): uint32 =
     ## Gets the integer representation of a 4-character string. This does the
     ## safe-ish equivalent of "*((int*)(c_str))" in C. This does not check the
     ## bounds on its inputs!
-    (int32(s[0]) shl 24 or int32(s[1]) shl 16 or
-     int32(s[2]) shl  8 or int32(s[3]))
+    uint32(
+        int32(s[0]) shl 24 or int32(s[1]) shl 16 or
+        int32(s[2]) shl  8 or int32(s[3]))

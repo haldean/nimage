@@ -27,6 +27,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import image
+import streamhelper
 import streams
 import strfmt
 import unsigned
@@ -49,15 +50,15 @@ proc write_header(buf: Stream) =
         buf.write(uint8(v))
 
 proc write_chunk(buf: Stream; chunktype: string; chunk: string) =
-    buf.write(int32(chunk.len))
+    buf.writeNInt32(uint32(chunk.len))
     buf.write(chunktype)
     buf.write(chunk)
-    buf.write(zcrc(chunk))
+    buf.writeNInt32(zcrc(chunktype, chunk))
 
 proc write_IHDR(buf: Stream, img: ref PngImage) =
     var chunk = newStringStream()
-    chunk.write(int32(img.width))
-    chunk.write(int32(img.height))
+    chunk.writeNInt32(uint32(img.width))
+    chunk.writeNInt32(uint32(img.height))
     chunk.write(img.depth)
     chunk.write(uint8(img.colorType))
     chunk.write(0'u8) # zlib compression
@@ -74,7 +75,9 @@ proc write_IDAT(buf: Stream, img: ref PngImage) =
     for r in 0..img.height-1:
         var scanline = newString(sl_len + 1)
         scanline[0] = char(Filter.none)
-        copyMem(addr(scanline[1]), addr(img.data[img.width * r]), sl_len)
+        for c in 0..img.width-1:
+            var cstr = itostr(uint32(img[][r, c]))
+            copyMem(addr(scanline[c * img.bpp + 1]), addr(cstr[0]), 4)
         let filtered = filter.apply(img.bpp, scanline, last_scanline)
         last_scanline = scanline
         chunk.writeData(addr(scanline[0]), len(scanline))

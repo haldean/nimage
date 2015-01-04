@@ -31,12 +31,16 @@ import streams
 
 proc main() =
     var img1 = createImage(2, 2)
-    img1[0, 0] = NColor(0xFFABCDEF)
-    img1[0, 1] = NColor(0xFF000000)
-    img1[1, 0] = NColor(0xFF000000)
-    img1[1, 1] = NColor(0xFFABCDEF)
+    img1[0, 0] = NColor(0x98765432)
+    img1[0, 1] = NColor(0xABAD1DEA)
+    img1[1, 0] = NColor(0xFF0000FF)
+    img1[1, 1] = NColor(0xABCDEFFF)
     var out1 = newFileStream("/tmp/test.png", fmWrite)
     img1.savePng(out1)
+    out1.close()
+    var in1 = newFileStream("/tmp/test.png", fmRead)
+    img1 = loadPng(in1)
+    in1.close()
 
 when isMainModule:
     main()
