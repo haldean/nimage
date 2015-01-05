@@ -1,20 +1,20 @@
 # Copyright (c) 2015, Haldean Brown
 # All rights reserved.
-# 
+#
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
-# 
+#
 # * Redistributions of source code must retain the above copyright notice, this
 #   list of conditions and the following disclaimer.
-# 
+#
 # * Redistributions in binary form must reproduce the above copyright notice,
 #   this list of conditions and the following disclaimer in the documentation
 #   and/or other materials provided with the distribution.
-# 
+#
 # * Neither the name of nimage nor the names of its
 #   contributors may be used to endorse or promote products derived from
 #   this software without specific prior written permission.
-# 
+#
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 # AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 # IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -32,6 +32,7 @@ import strfmt
 import unsigned
 
 import private/bytestream
+import private/dbgutil
 import private/filter
 import private/image
 import private/png
@@ -40,7 +41,7 @@ import private/zutil
 
 const DEBUG = false
 
-proc load_ihdr(img: ptr PngImage, chunkData: string) =
+proc load_ihdr(img: PngImage, chunkData: string) =
     var buf = newStringStream(chunkData)
     img.width = buf.readNInt32
     img.height = buf.readNInt32
@@ -58,6 +59,7 @@ proc load_ihdr(img: ptr PngImage, chunkData: string) =
         raise newException(ValueError, "unsupported interlace type " & $img.interlaced)
     if img.depth != 8:
         raise newException(ValueError, "unsupported color depth " & $img.depth)
+    img.data = newSeq[NColor](img.height * (img.width * img.bpp + 1))
 
 proc read_gray(stream: var Stream): NColor =
     let g = uint32(stream.readUint8)
@@ -71,27 +73,18 @@ proc read_rgb(stream: var Stream): NColor =
         (uint32(r) shl 24) or (uint32(g) shl 16) or (uint32(b) shl 8) or 0xFF'u32)
 
 proc read_rgba(stream: var Stream): NColor =
-    let r = uint32(stream.readUint8)
-    let g = uint32(stream.readUint8)
-    let b = uint32(stream.readUint8)
-    let a = uint32(stream.readUint8)
-    return NColor(
-        (uint32(r) shl 24) or (uint32(g) shl 16) or (uint32(b) shl 8) or a)
+    return NColor(stream.readNInt32)
 
-proc read_palette(stream: var Stream, img: ptr PngImage): NColor =
+proc read_palette(stream: var Stream, img: PngImage): NColor =
     return img.palette[stream.readUint8]
 
-proc load_idat(img: ptr PngImage, chunkData: string) =
+proc load_idat(img: var PngImage, chunkData: string) =
     let uncompressed = zuncompress(chunkData)
     when DEBUG: echo("  decompressed to " & $len(uncompressed) & " bytes")
     let scanlines = int(len(uncompressed) / (img.width * img.bpp + 1))
     assert(scanlines * (img.width * img.bpp + 1) == len(uncompressed))
     var r, c: int
     var buf = newStringStream(uncompressed)
-    if img.data.isNil:
-        img.data = newSeq[NColor](scanlines * img.width)
-    else:
-        img.data.setLen(img.data.len + (scanlines * img.width))
     var last_scanline: string
     while r < scanlines:
         let filter = Filter(buf.readUint8)
@@ -114,12 +107,12 @@ proc load_idat(img: ptr PngImage, chunkData: string) =
                 color = scanBuf.read_palette(img)
             else:
                 raise newException(ValueError, "can't decode color type " & $img.colorType)
-            img[][r, c] = color
+            img[r, c] = color
             c += 1
         last_scanline = scanline
         r += 1
 
-proc load_plte(img: ptr PngImage, chunkData: string): int =
+proc load_plte(img: PngImage, chunkData: string): int =
     let colors = int(chunkData.len / 3)
     assert(colors * 3 == chunkData.len)
     var buf = newStringStream(chunkData)
@@ -132,6 +125,7 @@ proc load_plte(img: ptr PngImage, chunkData: string): int =
 
 proc load_png*(buf: Stream): Image =
     var result: PngImage
+    new(result)
     for i in 0..len(PNG_HEADER) - 1:
         if buf.atEnd:
             raise newException(
@@ -158,14 +152,14 @@ proc load_png*(buf: Stream): Image =
                 fmt("bad CRC; from file: {:08x}, from data: {:08x}", crc, chunkCrc))
         case chunkType
         of ifromstr("IHDR"):
-            load_ihdr(addr(result), chunkData)
+            load_ihdr(result, chunkData)
             when DEBUG: echo("  after ihdr: " & $result)
         of ifromstr("PLTE"):
             when DEBUG:
-                let colors = load_plte(addr(result), chunkData)
+                let colors = load_plte(result, chunkData)
                 echo("  color count: " & $colors)
             else:
-                discard load_plte(addr(result), chunkData)
+                discard load_plte(result, chunkData)
         of ifromstr("IDAT"):
             idats.add(chunkData)
         of ifromstr("IEND"):
@@ -180,7 +174,7 @@ proc load_png*(buf: Stream): Image =
     for i, v in idats:
         copyMem(addr(idat[last_i]), addr(idats[i][0]), v.len)
         last_i += v.len
-    load_idat(addr(result), idat)
+    load_idat(result, idat)
     when DEBUG:
         echo("loaded image " & $result)
     return result

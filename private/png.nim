@@ -37,11 +37,12 @@ type
         palette = 3
         graya = 4
         rgba = 6
-    PngImage* = object of Image
+    PngImageObj* = object of ImageObj
         depth*: uint8
         colorType*: ColorType
         interlaced*: uint8
         palette*: array[0..255, NColor]
+    PngImage* = ref PngImageObj
 
 proc `$`*(x: PngImage): string =
     return ("(img w " & $x.width & " h " & $x.height & " depth " & $x.depth &

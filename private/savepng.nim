@@ -37,7 +37,7 @@ import private/filter
 import private/png
 import private/zutil
 
-proc to_png(img: Image): ref PngImage =
+proc to_png(img: Image): PngImage =
     new(result)
     result.width = img.width
     result.height = img.height
@@ -56,7 +56,7 @@ proc write_chunk(buf: Stream; chunktype: string; chunk: string) =
     buf.write(chunk)
     buf.writeNInt32(zcrc(chunktype, chunk))
 
-proc write_IHDR(buf: Stream, img: ref PngImage) =
+proc write_IHDR(buf: Stream, img: PngImage) =
     var chunk = newStringStream()
     chunk.writeNInt32(uint32(img.width))
     chunk.writeNInt32(uint32(img.height))
@@ -67,7 +67,7 @@ proc write_IHDR(buf: Stream, img: ref PngImage) =
     chunk.write(0'u8) # not interlaced
     buf.write_chunk("IHDR", chunk.data)
 
-proc write_IDAT(buf: Stream, img: ref PngImage) =
+proc write_IDAT(buf: Stream, img: PngImage) =
     var chunk = newStringStream()
     if img.bpp != 4:
         raise newException(ValueError, "only 4 BPP images are supported")
@@ -77,7 +77,7 @@ proc write_IDAT(buf: Stream, img: ref PngImage) =
         var scanline = newString(sl_len + 1)
         scanline[0] = char(Filter.none)
         for c in 0..img.width-1:
-            var cstr = itostr(uint32(img[][r, c]))
+            var cstr = itostr(uint32(img[r, c]))
             copyMem(addr(scanline[c * img.bpp + 1]), addr(cstr[0]), img.bpp)
         var filtered = filter.apply(img.bpp, scanline, last_scanline)
         last_scanline = scanline
@@ -89,7 +89,7 @@ proc write_IEND(buf: Stream) =
     buf.write_chunk("IEND", "")
 
 proc save_png*(img: Image, buf: Stream) =
-    var img = to_png(img)
+    let img = to_png(img)
     buf.write_header()
     buf.write_IHDR(img)
     buf.write_IDAT(img)
