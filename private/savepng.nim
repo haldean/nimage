@@ -38,16 +38,16 @@ import private/png
 import private/zutil
 
 type
-    EncoderOpts* = object
+    PngEncoderOpts* = object
         colorType: ColorType
 
-proc default_opts*(): EncoderOpts =
-    return EncoderOpts(colorType: rgba)
+proc default_opts*(): PngEncoderOpts =
+    return PngEncoderOpts(colorType: rgba)
 
-proc new_opts*(colorType: ColorType): EncoderOpts =
-    return EncoderOpts(colorType: colorType)
+proc new_opts*(colorType: ColorType): PngEncoderOpts =
+    return PngEncoderOpts(colorType: colorType)
 
-proc to_png(img: Image, opts: EncoderOpts): PngImage =
+proc to_png(img: Image, opts: PngEncoderOpts): PngImage =
     new(result)
     result.width = img.width
     result.height = img.height
@@ -112,7 +112,7 @@ proc write_IDAT(buf: Stream, img: PngImage) =
 proc write_IEND(buf: Stream) =
     buf.write_chunk("IEND", "")
 
-proc save_png*(img: Image, buf: Stream, opts: EncoderOpts) =
+proc save_png*(img: Image, buf: Stream, opts: PngEncoderOpts) =
     let img = to_png(img, opts)
     buf.write_header()
     buf.write_IHDR(img)

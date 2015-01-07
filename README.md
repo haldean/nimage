@@ -1,4 +1,4 @@
-nimage: pure-Nim image decoding
+nimage: pure-Nim image encoding and decoding
 ===
 
 `nimage` is an attempt to provide a nice, Nim-ish API over the process of

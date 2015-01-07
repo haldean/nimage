@@ -37,4 +37,4 @@ from private/loadpng import nil
 export loadpng.load_png
 
 from private/savepng import nil
-export savepng.save_png, savepng.EncoderOpts, savepng.new_opts, savepng.default_opts
+export savepng.save_png, savepng.PngEncoderOpts, savepng.new_opts, savepng.default_opts
