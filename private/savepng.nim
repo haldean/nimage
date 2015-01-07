@@ -114,7 +114,7 @@ proc write_IDAT(buf: Stream, img: PngImage) =
                 cstr = color.to_graya()
             else:
                 raise newException(
-                    ValueError, "only rgb and rgba images are supported")
+                    ValueError, "only rgb, rgba, gray and graya images are supported")
             assert(cstr.len == img.bpp)
             copyMem(addr(scanline[c * img.bpp + 1]), addr(cstr[0]), img.bpp)
         var filtered = filter.apply(img.bpp, scanline, last_scanline)
