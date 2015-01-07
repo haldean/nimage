@@ -10,9 +10,19 @@ goodness for image loading and saving.
 
 Current status
 ---
-`nimage` can currently read (but not write) PNG images from streams. It only
-implements the handling of critical chunks, which means that all ancillary
-chunks (containing colorspace data, metadata, etc.) are lost in loading.
+
+### Decoding
+
+`nimage` can currently read PNG images from streams. It only implements the
+handling of critical chunks, which means that all ancillary chunks (containing
+colorspace data, metadata, etc.) are lost in loading. Only PNG images with 8-bit
+color depth are supported; in practice, this is most PNG images, but there are a
+non-negligable number of PNG images that `nimage` just can't import right now.
+
+### Encoding
+
+`nimage` can currently write 8-bit RGBA PNG images. It doesn't support
+interlacing, predictive filtering or paletting.
 
 To see what's coming up, check out the [Github issues][0] for this project.
 
