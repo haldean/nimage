@@ -32,7 +32,7 @@ import streams
 proc main() =
     var buf3 = newFileStream("tests/bttf-palette.png", fmRead)
     let img3 = load_png(buf3)
-    assert($img3[0, 0] == "FF010601")
+    assert($img3[0, 0] == "010601FF")
     buf3.close()
 
     var buf2 = newFileStream("tests/bttf.png", fmRead)
@@ -44,7 +44,7 @@ proc main() =
 
     var buf1 = newFileStream("tests/test1.png", fmRead)
     let img1 = load_png(buf1)
-    assert($img1[0, 0] == "FF3C3C3C")
+    assert($img1[0, 0] == "3C3C3CFF")
     buf1.close()
     var out1 = newFileStream("/tmp/xkcd.png", fmWrite)
     img1.save_png(out1)

@@ -63,7 +63,7 @@ proc load_ihdr(img: PngImage, chunkData: string) =
 
 proc read_gray(stream: var Stream): NColor =
     let g = uint32(stream.readUint8)
-    return NColor(0xFF000000'u32 or (uint32(g) shl 16) or (uint32(g) shl 8) or g)
+    return NColor((uint32(g) shl 24) or (uint32(g) shl 16) or (g shl 8) or 0xFF'u32)
 
 proc read_rgb(stream: var Stream): NColor =
     let r = uint32(stream.readUint8)
@@ -83,7 +83,8 @@ proc load_idat(img: var PngImage, chunkData: string) =
     when DEBUG: echo("  decompressed to " & $len(uncompressed) & " bytes")
     let scanlines = int(len(uncompressed) / (img.width * img.bpp + 1))
     assert(scanlines * (img.width * img.bpp + 1) == len(uncompressed))
-    var r, c: int
+    assert(scanlines == img.height)
+    var r = 0
     var buf = newStringStream(uncompressed)
     var last_scanline: string
     while r < scanlines:
@@ -94,6 +95,7 @@ proc load_idat(img: var PngImage, chunkData: string) =
             scanline[i] = buf.readChar
         filter.unapply(img.bpp, scanline, last_scanline)
         var scanBuf = newStringStream(scanline)
+        var c = 0
         while c < img.width:
             var color: NColor
             case img.colorType
