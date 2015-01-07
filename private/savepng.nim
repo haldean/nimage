@@ -45,6 +45,10 @@ proc default_opts*(): PngEncoderOpts =
     return PngEncoderOpts(colorType: rgba)
 
 proc new_opts*(colorType: ColorType): PngEncoderOpts =
+    ## Create an encoder options struct for a given color type. Note that for
+    ## grayscale color types, the value in the red channel is taken as the
+    ## gray value; green and blue channels are ignored, and the alpha channel is
+    ## ignored for gray (but not graya).
     return PngEncoderOpts(colorType: colorType)
 
 proc to_png(img: Image, opts: PngEncoderOpts): PngImage =
@@ -83,6 +87,12 @@ proc to_rgba(c: NColor): string =
 proc to_rgb(c: NColor): string =
     return itostr(uint32(c), 3)
 
+proc to_gray(c: NColor): string =
+    return itostr(uint32(c), 1)
+
+proc to_graya(c: NColor): string =
+    return itostr(uint32(c), 1) & itostr(uint32(c) shl 24, 1)
+
 proc write_IDAT(buf: Stream, img: PngImage) =
     var chunk = newStringStream()
     let sl_len = img.width * img.bpp
@@ -98,6 +108,10 @@ proc write_IDAT(buf: Stream, img: PngImage) =
                 cstr = color.to_rgba()
             of rgb:
                 cstr = color.to_rgb()
+            of gray:
+                cstr = color.to_gray()
+            of graya:
+                cstr = color.to_graya()
             else:
                 raise newException(
                     ValueError, "only rgb and rgba images are supported")
