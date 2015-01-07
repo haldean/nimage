@@ -30,8 +30,11 @@ from private/image import nil
 export image.Image, image.`[]`, image.`[]=`, image.create_image
 export image.NColor, image.`==`, image.`$`
 
+from private/png import nil
+export png.ColorType
+
 from private/loadpng import nil
 export loadpng.load_png
 
 from private/savepng import nil
-export savepng.save_png
+export savepng.save_png, savepng.EncoderOpts, savepng.new_opts, savepng.default_opts

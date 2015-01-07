@@ -37,13 +37,23 @@ import private/filter
 import private/png
 import private/zutil
 
-proc to_png(img: Image): PngImage =
+type
+    EncoderOpts* = object
+        colorType: ColorType
+
+proc default_opts*(): EncoderOpts =
+    return EncoderOpts(colorType: rgba)
+
+proc new_opts*(colorType: ColorType): EncoderOpts =
+    return EncoderOpts(colorType: colorType)
+
+proc to_png(img: Image, opts: EncoderOpts): PngImage =
     new(result)
     result.width = img.width
     result.height = img.height
     result.data = img.data
     result.depth = 8
-    result.colorType = rgba
+    result.colorType = opts.colorType
     result.interlaced = 0
 
 proc write_header(buf: Stream) =
@@ -67,17 +77,31 @@ proc write_IHDR(buf: Stream, img: PngImage) =
     chunk.write(0'u8) # not interlaced
     buf.write_chunk("IHDR", chunk.data)
 
+proc to_rgba(c: NColor): string =
+    return itostr(uint32(c))
+
+proc to_rgb(c: NColor): string =
+    return itostr(uint32(c), 3)
+
 proc write_IDAT(buf: Stream, img: PngImage) =
     var chunk = newStringStream()
-    if img.bpp != 4:
-        raise newException(ValueError, "only 4 BPP images are supported")
     let sl_len = img.width * img.bpp
     var last_scanline: string
     for r in 0..img.height-1:
         var scanline = newString(sl_len + 1)
         scanline[0] = char(Filter.none)
         for c in 0..img.width-1:
-            var cstr = itostr(uint32(img[r, c]))
+            var cstr: string
+            let color = img[r, c]
+            case img.colorType
+            of rgba:
+                cstr = color.to_rgba()
+            of rgb:
+                cstr = color.to_rgb()
+            else:
+                raise newException(
+                    ValueError, "only rgb and rgba images are supported")
+            assert(cstr.len == img.bpp)
             copyMem(addr(scanline[c * img.bpp + 1]), addr(cstr[0]), img.bpp)
         var filtered = filter.apply(img.bpp, scanline, last_scanline)
         last_scanline = scanline
@@ -88,9 +112,12 @@ proc write_IDAT(buf: Stream, img: PngImage) =
 proc write_IEND(buf: Stream) =
     buf.write_chunk("IEND", "")
 
-proc save_png*(img: Image, buf: Stream) =
-    let img = to_png(img)
+proc save_png*(img: Image, buf: Stream, opts: EncoderOpts) =
+    let img = to_png(img, opts)
     buf.write_header()
     buf.write_IHDR(img)
     buf.write_IDAT(img)
     buf.write_IEND()
+
+proc save_png*(img: Image, buf: Stream) =
+    save_png(img, buf, default_opts())

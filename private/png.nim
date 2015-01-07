@@ -64,11 +64,12 @@ proc bpp*(img: PngImage): int =
 proc bpp*(img: ref PngImage): int = bpp(img[])
 proc bpp*(img: ptr PngImage): int = bpp(img[])
 
-proc itostr*(val: uint32): string {.inline.} =
-    ## Converts an integer to a four-character string, assuming each octet in
-    ## the integer is a valid ASCII char.
+proc itostr*(val: uint32, n = 4): string {.inline.} =
+    ## Converts an integer to a string, as if the bytes had been copied directly
+    ## out of the integer and into the bytestring. Copies the most-significant N
+    ## bytes.
     var result = ""
-    for i in 0..3:
+    for i in 0..n-1:
         result.add(char((val shr uint32(8 * (3 - i))) and 0xFF))
     return result
 
