@@ -19,8 +19,9 @@ and low byte is alpha.
 
 To load images, create a stream to read from and pass that stream to
 `nimage.load_png`. To save images, call `img.save_png` with a stream to save it
-to. Future releases will add support for providing options to `save_png`;
-currently (as described below) the encoder is not configurable.
+to. You can also pass a `PngEncoderOpts` struct with a color type to the
+encoder; this allows you to write grayscale images, and turn on and off the
+alpha channel.
 
 Images support indexing by row-column, to avoid users having to index into the
 row-major data array. You can take a look at [the tests][3] to see how the

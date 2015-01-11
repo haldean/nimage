@@ -62,15 +62,9 @@ proc unapply*(
         return
     for i, v in scanline:
         var left, up, corner: int
-        if i - bpp < 0:
-            left = 0
-            corner = 0
-        else:
+        if i - bpp >= 0:
             left = int(scanline[i - bpp])
-        if isNil(last_scanline):
-            corner = 0
-            up = 0
-        else:
+        if not isNil(last_scanline):
             up = int(last_scanline[i])
             if i - bpp >= 0:
                 corner = int(last_scanline[i - bpp])
@@ -95,17 +89,11 @@ proc apply*(
     assert(res.len == scanline.len)
     for i, v in scanline:
         var left, up, corner: int
-        if i - bpp <= 0:
-            left = 0
-            corner = 0
-        else:
+        if i - bpp >= 0:
             left = int(scanline[i - bpp])
-        if isNil(last_scanline):
-            corner = 0
-            up = 0
-        else:
+        if not isNil(last_scanline):
             up = int(last_scanline[i])
-            if i - bpp > 0:
+            if i - bpp >= 0:
                 corner = int(last_scanline[i - bpp])
         case filter
         of Filter.none:
@@ -140,4 +128,4 @@ proc choose_filter*(img: PngImage; scanline, last_scanline: string): Filter =
         if score < min_score:
             min_score = score
             min_f = f
-    return Filter.none
+    return min_f

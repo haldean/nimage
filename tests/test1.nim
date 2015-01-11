@@ -33,8 +33,9 @@ proc main() =
     var buf5 = newFileStream("tests/bttf-gray.png", fmRead)
     let img5 = load_png(buf5)
     buf5.close()
+    assert(img5[26, 89] == NColor(0x707070FF))
     var out5 = newFileStream("/tmp/bttf-gray.png", fmWrite)
-    let opts5 = new_opts(ColorType.graya)
+    let opts5 = new_opts(ColorType.gray)
     img5.save_png(out5, opts5)
     out5.close()
     # Make sure we can read the images we're writing
@@ -45,9 +46,6 @@ proc main() =
     assert(img4.height == img5.height)
     for i in 0..img4.height-1:
         for j in 0..img4.width-1:
-            if img4[i, j] == img5[i, j]:
-                continue
-            echo("at " & $i & ", " & $j & ": " & $img4[i, j] & " != " & $img5[i, j])
             assert(img4[i, j] == img5[i, j])
 
     var buf3 = newFileStream("tests/bttf-palette.png", fmRead)
