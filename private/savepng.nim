@@ -98,8 +98,7 @@ proc write_IDAT(buf: Stream, img: PngImage) =
     let sl_len = img.width * img.bpp
     var last_scanline: string
     for r in 0..img.height-1:
-        var scanline = newString(sl_len + 1)
-        scanline[0] = char(Filter.none)
+        var scanline = newString(sl_len)
         for c in 0..img.width-1:
             var cstr: string
             let color = img[r, c]
@@ -116,9 +115,12 @@ proc write_IDAT(buf: Stream, img: PngImage) =
                 raise newException(
                     ValueError, "only rgb, rgba, gray and graya images are supported")
             assert(cstr.len == img.bpp)
-            copyMem(addr(scanline[c * img.bpp + 1]), addr(cstr[0]), img.bpp)
-        var filtered = filter.apply(img.bpp, scanline, last_scanline)
+            copyMem(addr(scanline[c * img.bpp]), addr(cstr[0]), img.bpp)
+        let filter = filter.choose_filter(img, scanline, last_scanline)
+        var filtered = newString(scanline.len)
+        filter.apply(img.bpp, scanline, last_scanline, filtered)
         last_scanline = scanline
+        chunk.write(uint8(filter))
         chunk.writeData(addr(filtered[0]), len(filtered))
     var compressed = zcompress(chunk.data)
     buf.write_chunk("IDAT", compressed)

@@ -27,6 +27,9 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import math
+import unsigned
+
+import private/png
 
 type
     Filter* {. pure .} = enum
@@ -35,6 +38,11 @@ type
         up = 2
         average = 3
         paeth = 4
+
+template wmod(v, m: int): int =
+    ## Calculates v % m with sign wraparound, ensuring that the return value is in
+    ## [0, m). wmod(v, m) for -m < v < 0 is equal to m - v.
+    if v mod m < 0: (v mod m) + m else: v mod m
 
 proc paethpredict(a, b, c: int): int =
     let
@@ -68,29 +76,68 @@ proc unapply*(
                 corner = int(last_scanline[i - bpp])
         case filter
         of Filter.sub:
-            scanline[i] = char((int(v) + left) mod 256)
+            scanline[i] = char(wmod(int(v) + left, 256))
         of Filter.up:
-            scanline[i] = char((int(v) + up) mod 256)
+            scanline[i] = char(wmod(int(v) + up, 256))
         of Filter.average:
             let avg = int(floor((left + up) / 2))
-            scanline[i] = char((int(v) + avg) mod 256)
+            scanline[i] = char(wmod(int(v) + avg, 256))
         of Filter.paeth:
             let pp = paethpredict(left, up, corner)
-            scanline[i] = char((int(v) + pp) mod 256)
+            scanline[i] = char(wmod(int(v) + pp, 256))
         of Filter.none: discard
         else:
             raise newException(ValueError, "no support for filter " & $filter)
 
-proc apply*(bpp: int, scanline: var string, last_scanline: string): string =
-    let filter = Filter(scanline[0])
-    var result = newString(scanline.len)
+proc apply*(
+        filter: Filter; bpp: int; scanline, last_scanline: string;
+        res: var string) =
+    assert(res.len == scanline.len)
     for i, v in scanline:
-        if i == 0:
-            result[i] = v
-            continue
+        var left, up, corner: int
+        if i - bpp <= 0:
+            left = 0
+            corner = 0
+        else:
+            left = int(scanline[i - bpp])
+        if isNil(last_scanline):
+            corner = 0
+            up = 0
+        else:
+            up = int(last_scanline[i])
+            if i - bpp > 0:
+                corner = int(last_scanline[i - bpp])
         case filter
         of Filter.none:
-            result[i] = v
+            res[i] = v
+        of Filter.sub:
+            res[i] = char(wmod(int(v) - left, 256))
+        of Filter.up:
+            res[i] = char(wmod(int(v) - up, 256))
+        of Filter.average:
+            let avg = int(floor((left + up) / 2))
+            res[i] = char(wmod(int(v) - avg, 256))
+        of Filter.paeth:
+            let pp = paethpredict(left, up, corner)
+            res[i] = char(wmod(int(v) - pp, 256))
         else:
             raise newException(ValueError, "no support for filter " & $filter)
-    return result
+
+proc choose_filter*(img: PngImage; scanline, last_scanline: string): Filter =
+    if img.depth < 8'u8 or img.colorType == palette:
+        return Filter.none
+    var scores: array[low(Filter)..high(Filter), uint32]
+    var buf = newString(scanline.len)
+    for f in Filter:
+        f.apply(img.bpp, scanline, last_scanline, buf)
+        scores[f] = 0
+        for i, v in buf:
+            scores[f] += uint32(v)
+    var
+        min_score = uint32(scanline.len) * 256
+        min_f = Filter.none
+    for f, score in scores:
+        if score < min_score:
+            min_score = score
+            min_f = f
+    return Filter.none
