@@ -46,10 +46,10 @@ non-negligable number of PNG images that `nimage` just can't import right now.
 ### Encoding
 
 `nimage` can currently write 8-bit RGBA PNG images. It doesn't support
-interlacing, predictive filtering or paletting. The images that `nimage` writes
-are going to be much larger than they need to be; if you're using `nimage` in an
-environment in which the size of the output matters, you probably want to run
-the output through [`pngcrush`][2] or similar.
+interlacing or paletting. The images that `nimage` writes are going to be much
+larger than they need to be; if you're using `nimage` in an environment in which
+the size of the output matters, you probably want to run the output through
+[`pngcrush`][2] or similar.
 
 To see what's coming up, check out the [Github issues][0] for this project.
 
