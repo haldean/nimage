@@ -29,7 +29,7 @@
 import math
 import unsigned
 
-import private/png
+import png
 
 type
     Filter* {. pure .} = enum

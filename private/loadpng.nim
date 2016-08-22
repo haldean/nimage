@@ -31,13 +31,13 @@ import streams
 import strfmt
 import unsigned
 
-import private/bytestream
-import private/dbgutil
-import private/filter
-import private/image
-import private/png
-import private/streamhelper
-import private/zutil
+import bytestream
+import dbgutil
+import filter
+import image
+import png
+import streamhelper
+import zutil
 
 const DEBUG = false
 
@@ -61,17 +61,17 @@ proc load_ihdr(img: PngImage, chunkData: string) =
         raise newException(ValueError, "unsupported color depth " & $img.depth)
     img.data = newSeq[NColor](img.height * (img.width * img.bpp + 1))
 
-proc read_gray(stream: var Stream): NColor =
+proc read_gray(stream: var StringStream): NColor =
     let g = uint32(stream.readUint8)
     return NColor((uint32(g) shl 24) or (uint32(g) shl 16) or (g shl 8) or 0xFF'u32)
 
-proc read_graya(stream: var Stream): NColor =
+proc read_graya(stream: var StringStream): NColor =
     let
         g = uint32(stream.readUint8)
         a = uint32(stream.readUint8)
     return NColor((uint32(g) shl 24) or (uint32(g) shl 16) or (g shl 8) or a)
 
-proc read_rgb(stream: var Stream): NColor =
+proc read_rgb(stream: var StringStream): NColor =
     let
         r = uint32(stream.readUint8)
         g = uint32(stream.readUint8)
@@ -79,10 +79,10 @@ proc read_rgb(stream: var Stream): NColor =
     return NColor(
         (uint32(r) shl 24) or (uint32(g) shl 16) or (uint32(b) shl 8) or 0xFF'u32)
 
-proc read_rgba(stream: var Stream): NColor =
+proc read_rgba(stream: var StringStream): NColor =
     return NColor(stream.readNInt32)
 
-proc read_palette(stream: var Stream, img: PngImage): NColor =
+proc read_palette(stream: var StringStream, img: PngImage): NColor =
     return img.palette[stream.readUint8]
 
 proc load_idat(img: var PngImage, chunkData: string) =
@@ -137,6 +137,7 @@ proc load_plte(img: PngImage, chunkData: string): int =
 proc load_png*(buf: Stream): Image =
     var result: PngImage
     new(result)
+    if( buf==nil):echo "Nilbuffer"
     for i in 0..len(PNG_HEADER) - 1:
         if buf.atEnd:
             raise newException(
