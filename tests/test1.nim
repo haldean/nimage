@@ -70,7 +70,7 @@ proc main() =
     let img1 = load_png(buf1)
     assert($img1[0, 0] == "3C3C3CFF")
     buf1.close()
-    var out1 = newFileStream("ourxkcd.png", fmWrite)
+    var out1 = newFileStream("outxkcd.png", fmWrite)
     img1.save_png(out1)
     out1.close()
 
