@@ -28,7 +28,7 @@
 
 import unsigned
 
-import private/image
+import image
 
 type
     ColorType* = enum

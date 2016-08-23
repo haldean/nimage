@@ -26,7 +26,7 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import nimage
+import ../nimage
 import streams
 import strfmt
 
@@ -40,10 +40,10 @@ proc main() =
     img1[0, 0] = NColor(0x98765432)
     img1[0, 1] = NColor(0xABAD1DEA)
     img1[1, 1] = NColor(0xABCDEFFF)
-    var out1 = newFileStream("/tmp/test.png", fmWrite)
+    var out1 = newFileStream("test.png", fmWrite)
     img1.savePng(out1)
     out1.close()
-    var in1 = newFileStream("/tmp/test.png", fmRead)
+    var in1 = newFileStream("test.png", fmRead)
     var img2 = loadPng(in1)
     in1.close()
     for i in 0..h-1:

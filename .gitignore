@@ -1,3 +1,9 @@
 tests/nimcache
 tests/test1
 tests/simplesave
+nimcache
+*.exe
+*.dll
+ourxkcd.png
+outbttf.png
+outbttf-gray.png

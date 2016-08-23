@@ -32,10 +32,10 @@ import streams
 import strfmt
 import unsigned
 
-import private/dbgutil
-import private/filter
-import private/png
-import private/zutil
+import dbgutil
+import filter
+import png
+import zutil
 
 type
     PngEncoderOpts* = object

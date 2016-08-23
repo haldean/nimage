@@ -39,7 +39,7 @@ type
         data*: seq[NColor] # Data is stored in row-major format
     Image* = ref ImageObj
 
-# NColor implementation
+## NColor implementation
 
 proc `$`*(color: NColor): string =
     return fmt("{:08X}", uint32(color))
